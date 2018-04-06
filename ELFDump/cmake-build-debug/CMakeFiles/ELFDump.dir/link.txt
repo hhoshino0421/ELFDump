@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/ELFDump.dir/main.cpp.o CMakeFiles/ELFDump.dir/elfdump.c.o  -o ELFDump 

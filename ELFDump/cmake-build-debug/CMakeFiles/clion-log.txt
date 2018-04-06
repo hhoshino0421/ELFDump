@@ -1,0 +1,4 @@
+/home/hhoshino/clion-2017.3.3/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/hhoshino/workspace/CLion_workspace/ELFDump
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/hhoshino/workspace/CLion_workspace/ELFDump/cmake-build-debug
