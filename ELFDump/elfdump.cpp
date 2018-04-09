@@ -8,6 +8,8 @@
 #include <elf.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+//以下のincludeを追加 Hoshino Hitoshi
+#include <string.h>
 
 //http://kozos.jp/kozos/linux.htmlを参考に以下を追加-----
 typedef Elf64_Ehdr Elf_Ehdr;
@@ -24,7 +26,7 @@ static int elfdump(char *head) {
 
     //使用変数定義
     Elf64_Ehdr  *ehdr;
-    Elf64_Shdr  *shdr, *shstr, *sym, *rel;
+    Elf64_Shdr  *shdr, *shstr, *str, *sym, *rel;
     Elf64_Phdr  *phdr;
     Elf64_Sym   *symp;
     Elf64_Rel   *relp;
@@ -59,15 +61,16 @@ static int elfdump(char *head) {
         shdr = (Elf64_Shdr *)(head + ehdr->e_shoff + ehdr->e_shentsize * i);
         sname = (char *)(head + shstr->sh_offset + shdr->sh_name);
         printf("\t[%d]\t%s\n", i, sname);
-        //以下のロジックは不要な気がする...
-//        if (!strcmp(sname,".strtab")) {
-//            str = shdr;
-//        }
+
+        if (!strcmp(sname,".strtab")) {
+            str = shdr;
+        }
     }
 
     //セグメント一覧を表示
     printf("Segments name list: \n");
     for (i = 0; i < ehdr->e_phnum; i++) {
+
         phdr = (Elf64_Phdr *)(head + ehdr->e_phentsize * i);
         printf("\t[%d]\t", i);
 
@@ -94,6 +97,60 @@ static int elfdump(char *head) {
     //シンボル名一覧を表示
     printf("Symbol name list: \n");
 
+    for (i = 0; i < ehdr->e_shnum; i++) {
 
+        shdr = (Elf64_Shdr *)(head + ehdr->e_shoff + ehdr->e_shentsize + i);
+
+        if (shdr->sh_type != SHT_SYMTAB) {
+            continue;
+        }
+
+        sym = shdr;
+
+        for (j = 0; j < sym->sh_size / sym->sh_entsize; j++) {
+            symp = (Elf64_Sym *)(head + ehdr->e_shoff + ehdr->e_shentsize * j);
+            if(!symp->st_name) {
+                continue;
+            }
+            printf("\t[%d]\t%d\t%d\t%s\n",
+                j,(int)ELF64_ST_TYPE(symp->st_info),symp->st_size,
+                   (char *)(head + str->sh_offset + symp->st_name));
+
+        }
+
+    }
+
+    //再配置するシンボル一覧を表示
+    printf("Relocation: \n");
+
+    for( i = 0; i < ehdr->e_shnum; i++) {
+
+        shdr=(Elf64_Shdr *)(head + ehdr->e_shoff + ehdr->e_shentsize * i);
+
+        if ((shdr->sh_type != SHT_REL) && (shdr->sh_type != SHT_RELA)) {
+            continue;
+        }
+
+        rel = shdr;
+
+        for (j = 0; j < rel->sh_size / rel->sh_entsize; j++) {
+
+            relp = (Elf64_Rel *)(head + rel->sh_offset + rel->sh_entsize * j);
+
+            symp = (Elf64_Sym *)(head + sym->sh_offset +
+                                 (sym->sh_entsize * ELF64_R_SYM(relp->r_info)));
+
+            if (!symp->st_name) {
+                continue;
+            }
+
+            printf("\t[%d]\t%d\t%s\n",
+                    j,ELF64_R_SYM(relp->r_info),(char *)(head + str->sh_offset + symp->st_name));
+
+        }
+    }
+
+    //正常終了
+    return (0);
 
 }
